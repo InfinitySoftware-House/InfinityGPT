@@ -1,5 +1,5 @@
 # InfinityGPT
-> A local LLaMA experiment to boost productivity.
+## A local LLaMA experiment to boost productivity.
 
 InfinityGPT is here to help you with your productivity, browse the internet, search on Wikipedia, read .docx or .txt, chat mode, ask questions about everything!
 
@@ -40,6 +40,9 @@ Write me a Python code to make an HTTP request -code
 ```sh
 Summarize it "C:/user/documents/research.docx" -document
 ```
+
+## System requirements
+Not yet tested
 
 ## Release History
 
