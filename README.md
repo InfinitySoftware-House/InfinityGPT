@@ -29,6 +29,18 @@ A few example on how to use InfinityGPT:
 Last Barcelona game vs Real Madrid -search
 ```
 
+```sh
+Tell me something about Barack Obama -wikipedia
+```
+
+```sh
+Write me a Python code to make an HTTP request -code
+```
+
+```sh
+Summarize it "C:/user/documents/research.docx" -document
+```
+
 ## Release History
 
 * 0.0.1
