@@ -111,9 +111,11 @@ def find_commands(user_input):
             if texts is None:
                 print(c.NOT_VALID_FORMAT_DOCUMENT)
                 return False
-            document_summary = []
-            chat_chain.prompt = prompt_document
-            document_summary.append(chat_chain.run(input=texts, action=action))
+            for i, text in enumerate(texts):
+                document_summary = []
+                chat_chain.prompt = prompt_document
+                print(f"\nChunk {i}/{len(texts)}:")
+                document_summary.append(chat_chain.run(input=text, action=action))
         
 def search(question):
     print(Fore.GREEN + f"Searching for results about '{question}'...\n")

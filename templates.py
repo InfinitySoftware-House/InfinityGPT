@@ -59,13 +59,12 @@ class Templates:
         Code:"""
         
     def Document():
-        return """Context:
-    
+        return """Input text:
         {input}
         
-        The action you have to take: {action}
+        The action you have to take on the text: {action}
         
-        Result of the action:"""
+        Result:"""
         
 """Callback Handler streams to stdout on new llm token."""
 import sys
@@ -100,7 +99,7 @@ class TokenHandler(BaseCallbackHandler):
         """Run when LLM ends running."""
         self.time_end = time.time()
         self.total_time = self.time_end - self.start_time
-        print(Fore.CYAN + "Elapsed time: " + Fore.WHITE + f"{time_convert(self.total_time)}")
+        print("\n" + Fore.CYAN + "Elapsed time: " + Fore.WHITE + f"{time_convert(self.total_time)}")
 
     def on_llm_error(
         self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
