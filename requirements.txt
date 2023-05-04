@@ -1,0 +1,10 @@
+clint==0.5.1
+colorama==0.4.6
+docx==0.2.4
+duckduckgo_search==2.8.6
+langchain==0.0.157
+python_docx==0.8.11
+Requests==2.29.0
+spacy==3.4.4
+tqdm==4.65.0
+wikipedia==1.4.0
