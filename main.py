@@ -23,12 +23,6 @@ nlp = spacy.load('en_core_web_sm')
 def clear_terminal():
     os.system("cls" if os.name == "nt" else "clear")
 
-model_ubuntu = "ggml-alpaca-7b-q4.bin"
-model_mac = "/Users/francesco/Desktop/Progetti/AI/Models/ggml-alpaca-7b-q4.bin"
-# model_mac = "/Users/francesco/Desktop/Progetti/AI/Models/gpt4-x-alpaca-13b-native-ggml-model-q4_0.bin"
-# model_mac = "/Users/francesco/Desktop/Progetti/AI/Models/ggml-model-q4_0_13B.bin"
-# model_mac = "/Users/francesco/Desktop/Progetti/AI/Models/ggml-vic13b-q5_1.bin"
-
 prompt_thinking = PromptTemplate(template=Te.Templates.Thinking(), input_variables=["tools"])
 prompt_google = PromptTemplate(template=Te.Templates.Search(), input_variables=["question"])
 prompt_result = PromptTemplate(template=Te.Templates.Generate(), input_variables=["question", "result"])
@@ -38,20 +32,19 @@ prompt_chat = PromptTemplate(template=Te.Templates.Chat(), input_variables=["mes
 prompt_code = PromptTemplate(template=Te.Templates.Code(), input_variables=["input"])
 prompt_document = PromptTemplate(template=Te.Templates.Document(), input_variables=["input", "action"])
 
-# Callbacks support token-wise streaming
+clear_terminal()
+
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
-# Verbose is required to pass to the callback manager
-model_ubuntu = os.path.join(os.path.dirname(__name__), model_ubuntu)
+bot_name = input(Fore.BLUE + "What's my name? " + Fore.WHITE)
+callback_manager = CallbackManager([Te.TokenHandler(bot_name=bot_name, time_end=0, time_start=0, total_time=0)])
 
 if mh.download_file():
-    llm = LlamaCpp(model_path=mh.MODEL_PATH_LOCAL, callback_manager=callback_manager, verbose=True, n_ctx=2048, max_tokens=1024, streaming=True)
+    llm = LlamaCpp(model_path=mh.MODEL_PATH_LOCAL, callback_manager=callback_manager, verbose=True, n_ctx=2048*10, max_tokens=2048, streaming=True)
 else:
     print("You need to download the model in order to use the bot.")
     quit()
     
 clear_terminal()
-chain = LLMChain(prompt=prompt_google, llm=llm)
-
 chat_chain = LLMChain(prompt=prompt_chat, llm=llm)
 
 chat_history = []
@@ -80,7 +73,6 @@ def find_commands(user_input):
             return False
         chat_chain.prompt = prompt_result
         search_results = search(question=user_input)
-        print(Fore.WHITE)
         response = chat_chain.run(result=search_results, question=user_input)
         return response
     if "-code" in user_input:
@@ -88,7 +80,6 @@ def find_commands(user_input):
         if u.check_valid_command(user_input):
             return False
         chat_chain.prompt = prompt_code
-        print(Fore.GREEN)
         response = chat_chain.run(input=user_input)
         return response
     if "-wikipedia" in user_input:
@@ -96,10 +87,17 @@ def find_commands(user_input):
         if u.check_valid_command(user_input):
             return False
         subject = u.get_subject_phrase(nlp(user_input))
-        chat_chain.prompt = prompt_result
+        
         print(Fore.WHITE)
         wikipedia_result = w.get_summary(subject)
-        response = chat_chain.run(result=wikipedia_result, question=user_input)
+        if wikipedia_result is not False:
+            splitted_text = d.split_text(wikipedia_result)
+            print(Fore.GREEN + "Results found! Generating answer..." + Fore.WHITE)
+            chat_chain.prompt = prompt_result
+            response = chat_chain.run(result=splitted_text[0], question=user_input)
+            return response
+        else:
+            return wikipedia_result
     if "-document" in user_input:
         user_input = user_input.replace("-document", "").strip()
         pattern = r'"(.*?)"'
@@ -108,15 +106,14 @@ def find_commands(user_input):
             path = path.group(1)
             if u.check_valid_command(path, command="-document"):
                 return False
-            action = user_input.replace(path, "").strip()
+            action = user_input.replace(f'"{path}"', "").strip()
             texts = d.get_document_text(path)
             if texts is None:
                 print(c.NOT_VALID_FORMAT_DOCUMENT)
                 return False
             document_summary = []
             chat_chain.prompt = prompt_document
-            for text in texts:
-                document_summary.append(chat_chain.run(input=text, action=action))
+            document_summary.append(chat_chain.run(input=texts, action=action))
         
 def search(question):
     print(Fore.GREEN + f"Searching for results about '{question}'...\n")
@@ -139,7 +136,6 @@ if __name__ == "__main__":
         if response is True:
             start = response
         if start:
-            bot_name = input(Fore.BLUE + "What's my name? " + Fore.WHITE)
             while True:
                 chat_history.append({"role": "system", "message": "You are an assistant called: " + bot_name})
                 user_message = input(Fore.BLUE + "Task: " + Fore.WHITE)
@@ -150,7 +146,7 @@ if __name__ == "__main__":
                 is_loading = True
                 response = find_commands(user_message)
                 if response is None:
-                    print(Fore.RED)
+                    print(Fore.WHITE)
                     chat_chain.prompt = prompt_chat
                     response = chat_chain.run(message=user_message, history=chat_history, name=bot_name)
                     chat_history.append({"role": "bot", "message": response})

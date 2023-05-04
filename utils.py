@@ -7,9 +7,9 @@ colorama_init()
 def get_subject_phrase(doc):
     res = ""
     for token in doc:
-        if ("PROPN" in token.pos_) or ("NOUN" in token.pos_):
+        if ("PROPN" in token.pos_):
             res += token.text + " "
-    return res
+    return res.strip()
 
 def check_valid_command(user_input, command = None):
     if user_input == "":
