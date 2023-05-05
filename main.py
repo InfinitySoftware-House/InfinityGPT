@@ -1,11 +1,11 @@
 import os
 from langchain import PromptTemplate, LLMChain
 from langchain.llms import LlamaCpp
-from langchain.callbacks.base import CallbackManager
+from langchain.callbacks.manager import AsyncCallbackManager
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 import templates as Te
 from colorama import init as colorama_init
-from colorama import Fore
+from colorama import Fore, Style
 from duckduckgo_search import ddg
 import spacy
 import commands as c
@@ -14,6 +14,8 @@ import re
 import utils as u
 import wikipedia_handler as w
 import model_handler as mh
+from bs4 import BeautifulSoup
+import requests
 
 colorama_init()
 
@@ -34,15 +36,13 @@ prompt_document = PromptTemplate(template=Te.Templates.Document(), input_variabl
 
 clear_terminal()
 
-callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+callback_manager = AsyncCallbackManager([StreamingStdOutCallbackHandler()])
 bot_name = input(Fore.BLUE + "What's my name? " + Fore.WHITE)
-callback_manager = CallbackManager([Te.TokenHandler(bot_name=bot_name, time_end=0, time_start=0, total_time=0)])
+callback_manager = AsyncCallbackManager([Te.TokenHandler(bot_name=bot_name, time_end=0, time_start=0, total_time=0)])
 
-if mh.download_file():
-    llm = LlamaCpp(model_path=mh.MODEL_PATH_LOCAL, callback_manager=callback_manager, verbose=True, n_ctx=2048*10, max_tokens=2048, streaming=True)
-else:
-    print("You need to download the model in order to use the bot.")
-    quit()
+MODEL_PATH = mh.download_file()
+if MODEL_PATH is not None:
+    llm = LlamaCpp(model_path=MODEL_PATH, callback_manager=callback_manager, verbose=True, n_ctx=4096, max_tokens=2048, streaming=True)
     
 clear_terminal()
 chat_chain = LLMChain(prompt=prompt_chat, llm=llm)
@@ -65,7 +65,7 @@ def start_commands(command):
         print(Fore.BLUE + c.HELP + Fore.WHITE)
         return False
     return False
-    
+
 def find_commands(user_input):
     if "-search" in user_input:
         user_input = user_input.replace("-search", "").strip()
@@ -73,6 +73,7 @@ def find_commands(user_input):
             return False
         chat_chain.prompt = prompt_result
         search_results = search(question=user_input)
+        search_results = "\n".join(search_results)
         response = chat_chain.run(result=search_results, question=user_input)
         return response
     if "-code" in user_input:
@@ -111,16 +112,20 @@ def find_commands(user_input):
             if texts is None:
                 print(c.NOT_VALID_FORMAT_DOCUMENT)
                 return False
-            for i, text in enumerate(texts):
-                document_summary = []
+            if texts is list:
+                for i, text in enumerate(texts):
+                    document_summary = []
+                    chat_chain.prompt = prompt_document
+                    print(Fore.GREEN + Style.BRIGHT + f"\nChunk {i}/{len(texts)}:" + Fore.WHITE + Style.NORMAL)
+                    document_summary.append(chat_chain.run(input=text, action=action))
+            else:
                 chat_chain.prompt = prompt_document
-                print(f"\nChunk {i}/{len(texts)}:")
-                document_summary.append(chat_chain.run(input=text, action=action))
-        
+                print(Fore.GREEN + Style.BRIGHT + f"\nGenerating output:" + Fore.WHITE + Style.NORMAL)
+                chat_chain.run(input=texts, action=action)
 def search(question):
     print(Fore.GREEN + f"Searching for results about '{question}'...\n")
         
-    google_results = ddg(keywords=question, max_results=2)
+    google_results = ddg(keywords=question, max_results=5)
     
     results_chain = []
     for result in google_results:
@@ -132,6 +137,7 @@ def search(question):
 
 if __name__ == "__main__":
     print(c.WELCOME)
+    print(c.AVAILABLE_MODELS)
     while True:
         command = input("Command: ")
         response = start_commands(command)

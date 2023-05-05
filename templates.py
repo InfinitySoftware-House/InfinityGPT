@@ -2,6 +2,7 @@ from langchain.callbacks.base import BaseCallbackHandler
 from colorama import init as colorama_init
 from colorama import Fore
 import time
+import utils as u
 
 colorama_init()
 
@@ -9,7 +10,7 @@ def time_convert(sec):
   mins = sec // 60
   sec = sec % 60
   mins = mins % 60
-  return "{0}m:{1:.2f}s".format(int(mins),sec)
+  return "{0}m:{1:.0f}s".format(int(mins),sec)
 
 class Templates:
     def Wikipedia():
@@ -33,9 +34,8 @@ class Templates:
         {result}
     
         Answer this question: {question}
-        When you answer stop writing.
         
-        Answer:"""
+        The answer is:"""
         
     def Thinking():
         return """The action to take, it should be only one of this: {tools}
@@ -59,12 +59,14 @@ class Templates:
         Code:"""
         
     def Document():
-        return """Input text:
-        {input}
+        return """Generate an answer based on an input text and a question.
+        The input text to search for an answer in:
+            {input}
         
-        The action you have to take on the text: {action}
+        The question to answer:
+            {action}
         
-        Result:"""
+        Answer:"""
         
 """Callback Handler streams to stdout on new llm token."""
 import sys

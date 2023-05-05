@@ -1,3 +1,4 @@
+import sys
 from colorama import Fore
 from colorama import init as colorama_init
 import os
@@ -20,3 +21,6 @@ def check_valid_command(user_input, command = None):
             if not os.path.exists(user_input):
                 print(Fore.RED + "Please enter valid path." + Fore.WHITE)
                 return False
+
+def clear_prev_line():
+    sys.stdout.write("\033[K")
