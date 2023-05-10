@@ -101,7 +101,8 @@ class TokenHandler(BaseCallbackHandler):
         """Run when LLM ends running."""
         self.time_end = time.time()
         self.total_time = self.time_end - self.start_time
-        print("\n" + Fore.CYAN + "Elapsed time: " + Fore.WHITE + f"{time_convert(self.total_time)}")
+        #For test only
+        # print("\n" + Fore.CYAN + "Elapsed time: " + Fore.WHITE + f"{time_convert(self.total_time)}")
 
     def on_llm_error(
         self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any

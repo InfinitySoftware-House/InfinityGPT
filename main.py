@@ -42,7 +42,7 @@ callback_manager = AsyncCallbackManager([Te.TokenHandler(bot_name=bot_name, time
 
 MODEL_PATH = mh.download_file()
 if MODEL_PATH is not None:
-    llm = LlamaCpp(model_path=MODEL_PATH, callback_manager=callback_manager, verbose=True, n_ctx=4096, max_tokens=2048, streaming=True)
+    llm = LlamaCpp(model_path=MODEL_PATH, callback_manager=callback_manager, verbose=True, n_ctx=8096, max_tokens=2048, streaming=True)
     
 clear_terminal()
 chat_chain = LLMChain(prompt=prompt_chat, llm=llm)
@@ -73,7 +73,6 @@ def find_commands(user_input):
             return False
         chat_chain.prompt = prompt_result
         search_results = search(question=user_input)
-        search_results = "\n".join(search_results)
         response = chat_chain.run(result=search_results, question=user_input)
         return response
     if "-code" in user_input:
@@ -122,6 +121,12 @@ def find_commands(user_input):
                 chat_chain.prompt = prompt_document
                 print(Fore.GREEN + Style.BRIGHT + f"\nGenerating output:" + Fore.WHITE + Style.NORMAL)
                 chat_chain.run(input=texts, action=action)
+                
+def get_url_text(url):
+    request = requests.get(url)
+    soup = BeautifulSoup(request.text, "html.parser")
+    return soup.body.get_text()
+    
 def search(question):
     print(Fore.GREEN + f"Searching for results about '{question}'...\n")
         
@@ -129,11 +134,13 @@ def search(question):
     
     results_chain = []
     for result in google_results:
-        results_chain.append(result["body"])
+        results_chain.append(result["href"])
+        
+    text = get_url_text(results_chain[0]).replace("\n", " ").strip()[:1000]
 
     print(Fore.GREEN + "Results found! Generating answer..." + Fore.BLUE)
         
-    return results_chain
+    return text
 
 if __name__ == "__main__":
     print(c.WELCOME)

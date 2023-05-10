@@ -23,16 +23,14 @@ NOT_VALID_FORMAT_DOCUMENT = Fore.RED + f"Sorry, I can't read this document." + F
 AVAILABLE_MODELS = Fore.LIGHTCYAN_EX + """
 
 Available models:
-1: Alpaca 7B (Faster, worst results)
-2: Vicuna 7B (Slower, better results)
+1: Alpaca 7B
 
 """ + Fore.WHITE
 
 MODEL_SELECTION = Fore.LIGHTCYAN_EX + """
 
 Available models:
-1: Alpaca 7B (Faster, worst results)
-2: Vicuna 7B (Slower, better results)
+1: Alpaca 7B
 
 Select a model you would like to use, if not exist, you will download it.
 
