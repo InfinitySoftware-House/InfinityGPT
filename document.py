@@ -1,7 +1,6 @@
 import docx
 from langchain.text_splitter import NLTKTextSplitter
 import pandas as pd
-from llama_index import download_loader
 
 text_splitter = NLTKTextSplitter(chunk_size=1000)
 
