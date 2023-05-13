@@ -5,9 +5,12 @@ from pathlib import Path
 from tqdm import tqdm
 from colorama import init as colorama_init
 from colorama import Fore
-import commands as c
+import time
+import sys
 
 colorama_init()
+
+bot_name = ''
 
 MODEL_DOWNLOAD_URL_ALPACA = "https://huggingface.co/Sosaka/Alpaca-native-4bit-ggml/resolve/main/ggml-alpaca-7b-q4.bin"
 
@@ -49,3 +52,10 @@ def download_file():
         with open(model_path, 'wb')as output:
             shutil.copyfileobj(raw, output)
     return True
+
+def write_response(response):
+    sys.stdout.write(Fore.WHITE + f"{bot_name}: ")
+    for char in response["choices"][0]["message"]["content"]:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(0.03)

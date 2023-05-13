@@ -16,6 +16,7 @@ import wikipedia_handler as w
 import model_handler as mh
 from bs4 import BeautifulSoup
 import requests
+import llama_cpp
 
 colorama_init()
 
@@ -42,8 +43,8 @@ callback_manager = AsyncCallbackManager([Te.TokenHandler(bot_name=bot_name, time
 
 MODEL_PATH = mh.download_file()
 if MODEL_PATH is not None:
-    llm = LlamaCpp(model_path=MODEL_PATH, callback_manager=callback_manager, verbose=True, n_ctx=8096, max_tokens=2048, streaming=True)
-    
+    llm = llama_cpp.Llama(model_path="InfinityGPT/models/ggml-vic7b-q5_0.bin")
+    # llm = LlamaCpp(model_path="/Users/francesco/Desktop/Progetti/UniSym/InfinityGPT/models/ggml-gpt4all-j-v1.3-groovy.bin", callback_manager=callback_manager, verbose=True, n_ctx=8096, max_tokens=2048, streaming=True)
 clear_terminal()
 chat_chain = LLMChain(prompt=prompt_chat, llm=llm)
 

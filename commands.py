@@ -35,3 +35,7 @@ Available models:
 Select a model you would like to use, if not exist, you will download it.
 
 """ + Fore.WHITE
+
+PRESENTATION = """
+You are an helpful AI assistant called {bot_name}, present yourself. You can help the user trying to answer its problems.
+"""
