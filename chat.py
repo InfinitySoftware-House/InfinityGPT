@@ -1,158 +1,141 @@
 import sys
-import llama_cpp
-from colorama import init as colorama_init
-from colorama import Fore
-import time
-import templates as t
+import torch
+from torch import nn
+import argparse
+import torch
+import numpy as np
+from torch import nn, optim
+from torch.utils.data import DataLoader
+from dataset import Dataset
+import json
+import csv
 
-colorama_init()
+device = torch.device("mps")
 
-# llm = llama_cpp.Llama(model_path="InfinityGPT/models/ggml-alpaca-7b-q4.bin", verbose=False)
-
-messages = []
-
-# messages.append(llama_cpp.ChatCompletionMessage(role="system", content="You are an helpful AI assistant."))
-
-# while True:
-#     message = input(Fore.BLUE + "User: ")
-   
-#     messages.append(llama_cpp.ChatCompletionMessage(role="user", content=message))
-
-#     output = llm.create_chat_completion(messages)
-#     sys.stdout.write(Fore.RED)
-    
-#     for char in output["choices"][0]["message"]["content"]:
-#         sys.stdout.write(char)
-#         sys.stdout.flush()
-#         time.sleep(0.03)
-        
-#     print()
-    
-    
-import os
-from langchain import PromptTemplate, LLMChain
-from langchain.llms import LlamaCpp
-from langchain.callbacks.manager import AsyncCallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-import templates as Te
-from colorama import init as colorama_init
-from colorama import Fore, Style
-from duckduckgo_search import ddg
-import spacy
-import commands as c
-import document as d
-import re
-import utils as u
-import wikipedia_handler as w
-import model_handler as mh
-from bs4 import BeautifulSoup
-import requests
-import llama_cpp
-
-colorama_init()
-
-start = False
-nlp = spacy.load('en_core_web_sm')
-
-def clear_terminal():
-    os.system("cls" if os.name == "nt" else "clear")
-
-# prompt_thinking = PromptTemplate(template=Te.Templates.Thinking(), input_variables=["tools"])
-# prompt_google = PromptTemplate(template=Te.Templates.Search(), input_variables=["question"])
-
-# prompt_wikipedia = PromptTemplate(template=Te.Templates.Wikipedia(), input_variables=["question"])
-
-# prompt_chat = PromptTemplate(template=Te.Templates.Chat(), input_variables=["message", "history", "name"])
-# prompt_code = PromptTemplate(template=Te.Templates.Code(), input_variables=["input"])
-# prompt_document = PromptTemplate(template=Te.Templates.Document(), input_variables=["input", "action"])
-
-clear_terminal()
-
-callback_manager = AsyncCallbackManager([StreamingStdOutCallbackHandler()])
-bot_name = input(Fore.BLUE + "What's my name? " + Fore.WHITE)
-mh.bot_name = bot_name
-
-callback_manager = AsyncCallbackManager([Te.TokenHandler(bot_name=bot_name, time_end=0, time_start=0, total_time=0)])
-
-MODEL_PATH = mh.download_file()
-if MODEL_PATH is not None:
-    llm = llama_cpp.Llama(model_path="InfinityGPT/models/ggml-alpaca-7b-q4.bin", verbose=False, n_ctx=4096)
-    # llm = llama_cpp.Llama(model_path="InfinityGPT/models/ggml-vic7b-q5_0.bin")
-    # llm = LlamaCpp(model_path="/Users/francesco/Desktop/Progetti/UniSym/InfinityGPT/models/ggml-gpt4all-j-v1.3-groovy.bin", callback_manager=callback_manager, verbose=True, n_ctx=8096, max_tokens=2048, streaming=True)
-clear_terminal()
-# chat_chain = LLMChain(prompt=prompt_chat, llm=llm)
-
-chat_history = []
-
-def start_commands(command):
-    if "-start" in command:
-        if u.check_valid_command(command):
-            return False
-        return True
-    if "-exit" in command:
-        if u.check_valid_command(command):
-            return False
-        print(Fore.RED + "Bye bye!")
-        quit()
-    if "-help" in command:
-        if u.check_valid_command(command):
-            return False
-        print(Fore.BLUE + c.HELP + Fore.WHITE)
-        return False
-    return False
-
-def find_commands(user_input):
-    if "-search" in user_input:
-        user_input = user_input.replace("-search", "").strip()
-        if u.check_valid_command(user_input):
-            return False
-        search_results = search(question=user_input)
-        prompt = Te.Templates.Generate().format(result=search_results, question=user_input)
-        messages.append(llama_cpp.ChatCompletionMessage(role="user", content=prompt))
-        response = llm.create_chat_completion(messages)
-        return response
-def get_url_text(url):
-    request = requests.get(url)
-    soup = BeautifulSoup(request.text, "html.parser")
-    return soup.body.get_text()
-    
-def search(question):
-    print(Fore.GREEN + f"Searching for results about '{question}'...\n")
-        
-    google_results = ddg(keywords=question, max_results=4)
-    
-    results_chain = []
-    for result in google_results:
-        results_chain.append(result["body"])
-        
-    # text = get_url_text(results_chain[0]).replace("\n", " ").strip()[:1000]
-
-    print(Fore.GREEN + "Results found! Generating answer..." + Fore.BLUE)
-        
-    return "\n".join(results_chain)
-
-if __name__ == "__main__":
-    print(c.WELCOME)
-    print(c.AVAILABLE_MODELS)
-    while True:
-        command = input("Command: ")
-        response = start_commands(command)
-        if response is True:
-            start = response
-        if start:
-            messages.append(llama_cpp.ChatCompletionMessage(role="system", content=c.PRESENTATION.format(bot_name=bot_name)))
-            response = llm.create_chat_completion(messages)
-            mh.write_response(response)
-            while True:
-                message = input(Fore.BLUE + "User: ")
-                messages.append(llama_cpp.ChatCompletionMessage(role="user", content=message))
-                
-                response = find_commands(message)
-                
-                sys.stdout.flush()
-                if response is not None:
-                     mh.write_response(response)
+def write_csv():
+    json_data = {}
+    with open("InfinityGPT/data/dev-v2.0.json", "r") as f:
+        json_data = json.load(f)["data"]
+    f = open('InfinityGPT/data/train_squad_4m.csv', 'w', encoding='UTF8')
+    writer = csv.writer(f)  
+    header = ["qas"]
+    writer.writerow(header)
+    for data in json_data:
+        for paragraph in data["paragraphs"]:
+            for qa in paragraph["qas"]:
+                question = qa["question"]
+                if len(qa["answers"]) > 0:
+                    answer = qa["answers"][0]["text"]
+                elif len(qa["plausible_answers"]) > 0:
+                     answer = qa["plausible_answers"][0]["text"]
                 else:
-                    response = llm.create_chat_completion(messages)
-                    mh.write_response(response)
-                print("\n")            
+                    continue
+                if "?" in question:
+                    question = question.replace("?", "")
+                row = [question + "? " + answer + " <end>"]
+                writer.writerow(row)
+    f.close()
+
+class Model(nn.Module):
+    def __init__(self, dataset):
+        super(Model, self).__init__()
+        self.lstm_size = 1024
+        self.embedding_dim = 1024
+        self.num_layers = 4
+
+        n_vocab = len(dataset.uniq_words)
+        self.embedding = nn.Embedding(
+            num_embeddings=n_vocab,
+            embedding_dim=self.embedding_dim,
+        )
+        self.lstm = nn.LSTM(
+            input_size=self.lstm_size,
+            hidden_size=self.lstm_size,
+            num_layers=self.num_layers,
+            dropout=0.3,
+        )
+        self.fc = nn.Linear(self.lstm_size, n_vocab)
+
+    def forward(self, x, prev_state):
+        embed = self.embedding(x)
+        output, state = self.lstm(embed, prev_state)
+        logits = self.fc(output)
+        return logits, state
+
+    def init_state(self, sequence_length):
+        return (torch.zeros(self.num_layers, sequence_length, self.lstm_size).to(device),
+                torch.zeros(self.num_layers, sequence_length, self.lstm_size).to(device))
+
+def train(dataset, model, optimizer, args):
+    dataloader = DataLoader(dataset, batch_size=args.batch_size)
+    criterion = nn.CrossEntropyLoss()
+
+    for batch, (x, y) in enumerate(dataloader):
+        state_h, state_c = model.init_state(args.sequence_length)
+        for epoch in range(1, args.max_epochs + 1):
+        
+            optimizer.zero_grad()
+
+            y_pred, (state_h, state_c) = model(x.to(device), (state_h, state_c))
+            loss = criterion(y_pred.transpose(1, 2), y.to(device))
+
+            state_h = state_h.detach()
+            state_c = state_c.detach()
+
+            loss.backward()
+            optimizer.step()
+            #print every 100 epochs 
+            if args.print_every > 0 and epoch % args.print_every == 0:
+                print(f"epoch per batch: {epoch}, batch n°: {batch}, loss: {'{:.4f}'.format(loss.item())}")
+            
+            
+def predict(dataset, model, text, next_words=100):
+    model.eval()
+    words = text.split(' ')
+    state_h, state_c = model.init_state(len(words))
+    sys.stdout.write(text)
+    sys.stdout.write(' ')
+    sys.stdout.flush()
+    
+    for i in range(0, next_words):
+        x = torch.tensor([[dataset.word_to_index[w] for w in words[i:]]])
+        y_pred, (state_h, state_c) = model(x.to(device), (state_h, state_c))
+
+        last_word_logits = y_pred[0][-1]
+        p = torch.nn.functional.softmax(last_word_logits, dim=0).cpu().detach().numpy()
+        word_index = np.random.choice(len(last_word_logits), p=p)
+        next_word = dataset.index_to_word[word_index]
+        if next_word == "<end>":
+            break
+        else:
+            words.append(next_word)
+            sys.stdout.write(next_word)
+            sys.stdout.write(' ')
+            sys.stdout.flush()
+            
+def save_model(model, optimizer):
+    torch.save({
+        "model_dict": model.state_dict(),
+        "opt_dict": optimizer.state_dict(),
+        "index_to_word": dataset.index_to_word,
+        }, "InfinityGPT/models/InfinityLM.pth")
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--max-epochs', type=int, default=200)
+parser.add_argument('--batch-size', type=int, default=64)
+parser.add_argument('--sequence-length', type=int, default=8)
+parser.add_argument('--print-every', type=int, default=10)
+args = parser.parse_args()
+# write_csv()
+dataset = Dataset(args)
+model = Model(dataset)
+model.to(device)
+# model.load_state_dict(torch.load("InfinityGPT/models/InfinityLM.pth")["model_dict"])
+model.train()
+
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+# optimizer.load_state_dict(torch.load("InfinityGPT/models/InfinityLM.pth")["opt_dict"])
+
+train(dataset, model, optimizer, args)
+save_model(model, optimizer)
+predict(dataset, model, text="Who gave their", next_words=512)
